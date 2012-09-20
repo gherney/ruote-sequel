@@ -48,7 +48,7 @@ module Sequel
       String :ide, :size => 255, :null => false
       Integer :rev, :null => false
       String :typ, :size => 55, :null => false
-      String :doc, :text => true, :null => false
+      String :doc, :text => true, :null => false  #<= this still causes grief with Oracle - not translating to CLOB
       String :wfid, :size => 255
       String :participant_name, :size => 512
 
@@ -203,7 +203,7 @@ module Sequel
       )
 
       docs = select_last_revs(ds)
-      docs = docs.collect { |d| Rufus::Json.decode(d[:doc]) }
+      docs = docs.collect { |d| Rufus::Json.decode(_to_s d[:doc]) }
 
       if keys && keys.first.is_a?(Regexp)
         docs.select { |doc| keys.find { |key| key.match(doc['_id']) } }
@@ -278,7 +278,7 @@ module Sequel
         opts[:limit], opts[:offset] || opts[:skip]
       )
 
-      select_last_revs(docs).collect { |d| Ruote::Workitem.from_json(d[:doc]) }
+      select_last_revs(docs).collect { |d| Ruote::Workitem.from_json(_to_s d[:doc]) }
     end
 
     # Querying workitems by field (warning, goes deep into the JSON structure)
@@ -305,7 +305,7 @@ module Sequel
         opts[:limit], opts[:offset] || opts[:skip]
       )
 
-      select_last_revs(docs).collect { |d| Ruote::Workitem.from_json(d[:doc]) }
+      select_last_revs(docs).collect { |d| Ruote::Workitem.from_json(_to_s d[:doc]) }
     end
 
     def query_workitems(criteria)
@@ -333,7 +333,7 @@ module Sequel
 
       ds = ds.order(:ide.asc, :rev.desc).limit(limit, offset)
 
-      select_last_revs(ds).collect { |d| Ruote::Workitem.from_json(d[:doc]) }
+      select_last_revs(ds).collect { |d| Ruote::Workitem.from_json(_to_s d[:doc]) }
     end
 
     # Used by the worker to indicate a new step begins. For ruote-sequel,
@@ -374,7 +374,7 @@ module Sequel
         :typ => type, :ide => key
       ).reverse_order(:rev).first
 
-      d ? Rufus::Json.decode(d[:doc]) : nil
+      d ? Rufus::Json.decode(_to_s d[:doc]) : nil
     end
 
     # Weed out older docs (same ide, smaller rev).
@@ -412,7 +412,7 @@ module Sequel
       ).order(
         :ide.asc, :rev.desc
       ).each do |d|
-        (cache[d[:typ]] ||= {})[d[:ide]] ||= Rufus::Json.decode(d[:doc])
+        (cache[d[:typ]] ||= {})[d[:ide]] ||= Rufus::Json.decode(_to_s d[:doc].read)
       end
 
       cache['variables']['trackers'] ||=
@@ -455,6 +455,10 @@ module Sequel
       return {} unless worker
 
       (Thread.current["cache_#{worker.name}"] ||= {})
+    end
+    
+    def _to_s d
+      (defined? OCI8 and d.instance_of? OCI8::CLOB) ? d.read : d
     end
   end
 end
