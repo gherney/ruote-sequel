@@ -278,7 +278,7 @@ module Sequel
         opts[:limit], opts[:offset] || opts[:skip]
       )
 
-      select_last_revs(docs).collect { |d| Ruote::Workitem.from_json(_to_s d[:doc]) }
+      select_last_revs(docs).collect { |d| Ruote::Workitem.from_json(d[:doc]) }
     end
 
     # Querying workitems by field (warning, goes deep into the JSON structure)
@@ -305,7 +305,7 @@ module Sequel
         opts[:limit], opts[:offset] || opts[:skip]
       )
 
-      select_last_revs(docs).collect { |d| Ruote::Workitem.from_json(_to_s d[:doc]) }
+      select_last_revs(docs).collect { |d| Ruote::Workitem.from_json(d[:doc]) }
     end
 
     def query_workitems(criteria)
@@ -333,7 +333,7 @@ module Sequel
 
       ds = ds.order(:ide.asc, :rev.desc).limit(limit, offset)
 
-      select_last_revs(ds).collect { |d| Ruote::Workitem.from_json(_to_s d[:doc]) }
+      select_last_revs(ds).collect { |d| Ruote::Workitem.from_json(d[:doc]) }
     end
 
     # Used by the worker to indicate a new step begins. For ruote-sequel,
